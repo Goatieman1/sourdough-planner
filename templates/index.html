@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sourdough Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍞</text></svg>">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body { background: linear-gradient(135deg, #f5e6c8, #f2d9a6); color:#3e2f1c; }
+.card { border-radius:20px; background:rgba(255,255,255,0.7); }
+.timeline-item { border-left:4px solid #c0892b; padding-left:15px; margin-bottom:10px; transition:all 0.3s; }
+.timeline-item.active { background:rgba(192,137,43,0.2); }
+.timeline-item.next { outline:2px dashed #c0892b; }
+.timeline-item.done { opacity:0.4; text-decoration:line-through; }
+.progress { height:20px; }
+.small-timer { font-size:0.9rem; color:#6b4f2a; }
+
+/* Layout for forms section */
+.forms-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.forms-row > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.forms-right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.forms-right-column > .card {
+  flex: 1;
+}
+
+/* Calculator styling */
+.calculator {
+  width: 100%;
+}
+.calc-btn, .copy-btn, .clear-btn, .print-btn {
+  margin-top: 5px;
+}
+input[type=range] {
+  accent-color: #c0892b;
+}
+</style>
+</head>
+<body class="p-4">
+<div class="container">
+<h1 class="mb-4">🍞 Sourdough Planner</h1>
+
+<!-- Timeline Form and Recipe Calculator (Side by Side) -->
+<div class="forms-row">
+  <!-- Recipe Calculator -->
+  <div class="card p-4">
+    <h3>Ingredient Calculator</h3>
+    <div class="calculator">
+
+      <label>Target loaf weight (g)</label>
+      <input type="number" id="flourInput" value="500" class="form-control mb-2">
+
+      <label>Hydration: <strong id="hydrationValue">70</strong>%</label>
+      <input type="range" id="hydrationSlider" min="60" max="90" value="70" class="form-range mb-2">
+
+      <label>Starter (g)</label>
+      <input type="number" id="starterInput" value="125" class="form-control mb-2">
+
+      <label>Salt (g)</label>
+      <input type="number" id="saltInput" value="10" class="form-control mb-2">
+
+      <label><input type="checkbox" id="advancedMode"> Advanced Mode - Select to change hydration, starter & salt amounts</label>
+
+      <button id="calcBtn" class="btn btn-warning w-100 mb-2">Calculate</button>
+      <button id="copyBtn" class="btn btn-dark w-100 mb-2">Copy Recipe</button>
+      <button id="clearBtn" class="btn btn-secondary w-100 mb-2">Clear Recipe</button>
+      <button id="printBtn" class="btn btn-info w-100 mb-2">Print Recipe</button>
+
+    </div>
+  </div>
+
+  <!-- Right column with Timeline Generator and Recipe Amounts -->
+  <div class="forms-right-column">
+    <!-- Timeline Form -->
+    <div class="card p-4">
+      <h3>Timeline Generator</h3>
+      <form method="POST" id="timelineForm">
+        <div class="d-flex align-items-center mb-3">
+          <label for="end_time" class="me-2">Target loaf ready time</label>
+          <input type="datetime-local" id="end_time" name="end_time" class="form-control" style="max-width: 250px;"
+            value="{{ end_time }}" required>
+        </div>
+        <label>Bulk fermentation target time: <strong id="bulkValue">{{ bulk_hours or 7 }}</strong> hrs</label>
+        <input type="range" id="bulkSlider" name="bulk" min="6" max="8" step="0.5"
+          value="{{ bulk_hours or 7 }}" class="form-range">
+        <label>Cold fermentation target time: <strong id="coldValue">{{ cold_hours or 12 }}</strong> hrs</label>
+        <input type="range" id="coldSlider" name="cold" min="8" max="24" step="1"
+          value="{{ cold_hours or 12 }}" class="form-range">
+        <label><input type="checkbox" name="autolyse" {% if include_autolyse %}checked{% endif %}> Include the Autolyse step</label>
+      <div class="d-flex gap-2 mt-2 timeline-controls">
+        <button id="generateTimelineBtn" type="submit" class="btn btn-success w-50">Generate Timeline</button>
+        <button id="resetTimelineBtn" type="button" class="btn btn-secondary w-50">Reset Timeline</button>
+      </div>
+      </form>
+    </div>
+
+    <!-- Recipe Amounts -->
+    <div class="card p-4">
+      <h3>Recipe Amounts</h3>
+      <div id="results" class="mt-3" style="display:none;">
+        <p>🌾 Flour: <span id="resFlour"></span>g</p>
+        <p>💧 Water: <span id="resWater"></span>g</p>
+        <p>🍶 Starter: <span id="resStarter"></span>g</p>
+        <p>🧂 Salt: <span id="resSalt"></span>g</p>
+        <hr>
+        <p>⚖️ Total: <span id="resTotal"></span>g</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline Display -->
+{% if timeline %}
+<div id="timelineCard" class="card p-4 mb-4">
+  <h3>Timeline</h3>
+  <div id="timeline">
+    {% for item in timeline %}
+    <div class="timeline-item" data-start="{{ item.start.isoformat() }}" data-end="{{ item.end.isoformat() }}">
+      <input type="checkbox">
+      <strong>{{ item.title }}</strong>
+      <p style="margin:0; font-size:0.9rem; color:#6b4f2a;">
+        {{ item.desc }}
+      </p>
+      <small>{{ item.start.strftime('%d/%m %H:%M') }} → {{ item.end.strftime('%H:%M') }}</small>
+      <div class="small-timer"></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="progress mt-3">
+    <div id="progress_bar" class="progress-bar bg-primary" style="width:0%"></div>
+  </div>
+</div>
+{% endif %}
+
+<div id="printArea" style="display:none;"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+
+  const hydrationSlider = document.getElementById('hydrationSlider');
+  const hydrationValue = document.getElementById('hydrationValue');
+  const starterInput = document.getElementById('starterInput');
+  const saltInput = document.getElementById('saltInput');
+  const calcBtn = document.getElementById('calcBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const printBtn = document.getElementById('printBtn');
+  const results = document.getElementById('results');
+  const resFlour = document.getElementById('resFlour');
+  const resWater = document.getElementById('resWater');
+  const resStarter = document.getElementById('resStarter');
+  const resSalt = document.getElementById('resSalt');
+  const resTotal = document.getElementById('resTotal');
+  const copyMsg = document.getElementById('copyMsg');
+  const advancedMode = document.getElementById('advancedMode');
+  const bulkSlider = document.getElementById('bulkSlider');
+  const bulkValue = document.getElementById('bulkValue');
+  const coldSlider = document.getElementById('coldSlider');
+  const coldValue = document.getElementById('coldValue');
+
+  // --- Advanced mode toggle ---
+  function updateAdvanced(){
+    const disabled = !advancedMode.checked;
+    hydrationSlider.disabled = disabled;
+    starterInput.disabled = disabled;
+    saltInput.disabled = disabled;
+  }
+
+  advancedMode.addEventListener('change', updateAdvanced);
+  updateAdvanced(); // set on load
+
+  // --- Calculate recipe ---
+  function calculateRecipe(){
+    const loaf = parseFloat(flourInput.value)||0;
+    const hydration = parseFloat(hydrationSlider.value)||70;
+
+    const water = Math.round(loaf * hydration / 100);
+    const defaultStarter = Math.round(loaf*0.25);
+    const defaultSalt = Math.round(loaf*0.02);
+    const starter = advancedMode.checked ? (parseFloat(starterInput.value)||defaultStarter) : defaultStarter;
+    const salt = advancedMode.checked ? (parseFloat(saltInput.value)||defaultSalt) : defaultSalt;
+    const total = loaf;
+
+    resFlour.innerText = loaf;
+    resWater.innerText = water;
+    resStarter.innerText = starter;
+    resSalt.innerText = salt;
+    resTotal.innerText = total;
+    results.style.display='block';
+
+    localStorage.setItem('flour', loaf);
+    localStorage.setItem('hydration', hydrationSlider.value);
+    localStorage.setItem('starter', starterInput.value);
+    localStorage.setItem('salt', saltInput.value);
+  }
+
+  // --- Copy recipe ---
+  function copyRecipe(){
+    if(!resFlour.innerText){ alert("Calculate first"); return; }
+    const text=`Sourdough Recipe\nFlour: ${resFlour.innerText}g\nWater: ${resWater.innerText}g\nStarter: ${resStarter.innerText}g\nSalt: ${resSalt.innerText}g\nTotal: ${resTotal.innerText}g`;
+    navigator.clipboard.writeText(text).then(()=>{
+      copyMsg.style.display='inline';
+      setTimeout(()=>{ copyMsg.style.display='none'; },1500);
+    });
+  }
+
+  // --- Clear recipe ---
+  clearBtn.addEventListener('click', ()=>{
+    flourInput.value = 500;
+    hydrationSlider.value = 70;
+    hydrationValue.innerText = 70;
+    starterInput.value = 125;
+    saltInput.value = 10;
+    results.style.display='none';
+    localStorage.removeItem('flour');
+    localStorage.removeItem('hydration');
+    localStorage.removeItem('starter');
+    localStorage.removeItem('salt');
+  });
+
+  // --- Print recipe ---
+  printBtn.addEventListener('click', ()=>{
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML = `<h2>Sourdough Recipe</h2>
+      <p>Flour: ${resFlour.innerText}g</p>
+      <p>Water: ${resWater.innerText}g</p>
+      <p>Starter: ${resStarter.innerText}g</p>
+      <p>Salt: ${resSalt.innerText}g</p>
+      <p>Total: ${resTotal.innerText}g</p>
+      <hr>
+      <h3>Timeline</h3>
+      ${document.getElementById('timeline') ? document.getElementById('timeline').innerHTML : ''}`;
+    const win = window.open('', '', 'width=800,height=600');
+    win.document.write('<html><head><title>Print Recipe</title></head><body>' + printArea.innerHTML + '</body></html>');
+    win.document.close();
+    win.print();
+  });
+
+  // --- Restore stored values ---
+  if(localStorage.getItem('flour')) flourInput.value = localStorage.getItem('flour');
+  if(localStorage.getItem('hydration')){
+    hydrationSlider.value = localStorage.getItem('hydration');
+    hydrationValue.innerText = hydrationSlider.value;
+  }
+  if(localStorage.getItem('starter')) starterInput.value = localStorage.getItem('starter');
+  if(localStorage.getItem('salt')) saltInput.value = localStorage.getItem('salt');
+
+  calculateRecipe();
+
+  // --- Hydration display sync ---
+  hydrationSlider.addEventListener('input', ()=>{
+    hydrationValue.innerText = hydrationSlider.value;
+  });
+
+  // --- Bulk display sync ---
+  bulkSlider.addEventListener('input', ()=>{
+    bulkValue.innerText = bulkSlider.value;
+  });
+
+  // --- Cold display sync ---
+  coldSlider.addEventListener('input', ()=>{
+    coldValue.innerText = coldSlider.value;
+  });
+
+  // --- Calculate only on button ---
+  calcBtn.addEventListener('click', calculateRecipe);
+  copyBtn.addEventListener('click', copyRecipe);
+
+  // --- Reset timeline button ---
+  const resetTimelineBtn = document.getElementById('resetTimelineBtn');
+  resetTimelineBtn.addEventListener('click', ()=>{
+    localStorage.removeItem('timelineChecks');
+    const checks = document.querySelectorAll('.timeline-item input[type="checkbox"]');
+    checks.forEach(cb=>{ cb.checked = false; cb.closest('.timeline-item').classList.remove('done'); });
+    updateProgress();
+    if(document.getElementById('timeline')){
+      document.querySelectorAll('.timeline-item').forEach(item=>{item.classList.remove('active','next'); item.querySelector('.small-timer').innerText='';});
+    }
+    const timelineCard = document.getElementById('timelineCard');
+    if (timelineCard) timelineCard.style.display = 'none';
+
+    // Clear timeline-related inputs on reset
+    document.getElementById('end_time').value = '';
+    bulkSlider.value = 7;
+    bulkValue.innerText = 7;
+    coldSlider.value = 12;
+    coldValue.innerText = 12;
+  });
+
+  // --- Timeline progress, countdown & checkboxes ---
+  function highlightSteps(){
+    const items = document.querySelectorAll('.timeline-item');
+    const now = new Date();
+    let nextFound = false;
+    items.forEach(item=>{
+      const start = new Date(item.dataset.start);
+      const end = new Date(item.dataset.end);
+      const timer = item.querySelector('.small-timer');
+      item.classList.remove('active','next');
+      if(now < start && !nextFound){
+        item.classList.add('next');
+        timer.innerText = 'Starts in ' + Math.floor((start-now)/60000) + ' min';
+        nextFound = true;
+      } else if(now>=start && now<=end){
+        item.classList.add('active');
+        timer.innerText = 'Ends in ' + Math.floor((end-now)/60000) + ' min';
+        // item.scrollIntoView({behavior:'smooth',block:'center'});
+      } else { timer.innerText=''; }
+    });
+  }
+
+  function updateProgress(){
+    const checks = document.querySelectorAll('.timeline-item input[type="checkbox"]');
+    const progressBar = document.getElementById('progress_bar');
+    if(!progressBar) return;
+    const total = checks.length;
+    const completed = [...checks].filter(c=>c.checked).length;
+    progressBar.style.width = total ? (completed/total*100)+'%' : '0%';
+  }
+
+  function saveState(cb){
+    const item = cb.closest('.timeline-item');
+    if(cb.checked){ item.classList.add('done'); } else { item.classList.remove('done'); }
+    const checks = document.querySelectorAll('.timeline-item input[type="checkbox"]');
+    const state = [...checks].map(c=>c.checked);
+    localStorage.setItem('timelineChecks', JSON.stringify(state));
+    updateProgress();
+  }
+
+  const saved = JSON.parse(localStorage.getItem('timelineChecks')||'[]');
+  const checks = document.querySelectorAll('.timeline-item input[type="checkbox"]');
+  checks.forEach((c,i)=>{
+    c.checked = saved[i]||false;
+    if(c.checked) c.closest('.timeline-item').classList.add('done');
+    c.addEventListener('change',()=>saveState(c));
+  });
+
+  updateProgress();
+  highlightSteps();
+  setInterval(highlightSteps,60000);
+
+});
+</script>
+
+</body>
+</html>
