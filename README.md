@@ -15,12 +15,16 @@ Sourdough Planner is a simple Flask web app that helps bakers plan a loaf from s
 
 ## Screenshots
 
+Example 1: App on load
 ![Sourdough Planner on load](pictures/appOnLoad.png)
 
+Example 2: App after recipe generation
 ![Sourdough Planner with ingredient values populated](pictures/appPopulated.png)
 
+Example 3: Timeline example image 1 showing past, current and next steps
 ![Sourdough Planner timeline view](pictures/appTimeline.png)
 
+Example 4: Timeline example image 2 showing additional steps and lower progress bar
 ![Sourdough Planner extended timeline view](pictures/appTimeline2.png)
 
 ## Running Locally
@@ -60,35 +64,24 @@ Then open `http://127.0.0.1:8000`.
 ├── templates/
 │   └── index.html
 ├── requirements.txt
-├── Dockerfile
 └── README.md
 ```
 
 ## How To Use
 
-Example text to edit:
-
-1. Enter your target loaf size in the Ingredient Calculator.
-2. Click `Calculate` to generate ingredient amounts.
-3. Choose your target loaf-ready time in the Timeline Generator.
-4. Adjust fermentation timings if needed.
-5. Toggle optional steps like autolyse or feeding the starter.
-6. Generate the timeline and work through the bake.
-
 ## Roadmap
 
 Example ideas to keep, remove, or rewrite:
 
-- Add persistent saved recipes
+- Add persistent saved recipes to view across devices
 - Add multiple loaf profiles
-- Add printable or exportable timeline views
 - Add mobile layout improvements
 - Add unit or integration tests
 
-## Contributing
+## Issues/Suggestions
 
-Example text to amend:
-Contributions, suggestions, and improvements are welcome. If you would like to contribute, feel free to fork the repository and open a pull request.
+Found an issue? Feel free to create a new issue and I'll look into it
+Got a suggestion? Again please feel free to open a new issue and make a suggestion, thanks.
 
 ## License
 

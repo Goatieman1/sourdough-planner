@@ -33,3 +33,7 @@ dist/
 
 # Local Codex metadata
 .codex
+
+# Docker files
+Dockerfile
+docker-compose.yml
