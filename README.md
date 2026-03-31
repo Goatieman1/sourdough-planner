@@ -64,10 +64,17 @@ Then open `http://127.0.0.1:8000`.
 ├── templates/
 │   └── index.html
 ├── requirements.txt
+├── Dockerfile
+├── LICENSE
 └── README.md
 ```
 
 ## How To Use
+
+1. Select the size of loaf you want to make (unlock advanced mode if experienced baker)
+2. Click calculate to display recipe amounts
+3. To generate your timeline steps, on the date picker choose a date and time you'd like your loaf to be ready (including tailoring your wait times if you are aware of the temperature affects of your kitchen) and if you want to include the autolyse and starter steps then click generate timeline
+4. Timeline steps are displayed below the current sections with checkboxes to mark off as they are completed
 
 ## Roadmap
 
@@ -85,5 +92,4 @@ Got a suggestion? Again please feel free to open a new issue and make a suggesti
 
 ## License
 
-Example text to amend:
-Choose a license before publishing, such as MIT, Apache-2.0, or keep this section updated with your preferred terms.
+This project is licensed under the MIT License. See the `LICENSE` file for details.

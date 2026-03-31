@@ -35,5 +35,4 @@ dist/
 .codex
 
 # Docker files
-Dockerfile
 docker-compose.yml
