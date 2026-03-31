@@ -7,24 +7,28 @@ app = Flask(__name__)
 def index():
     timeline = []
     include_autolyse = True
+    include_feed_starter = True
 
     # Keep form state between submissions
     end_time_str = ''
     bulk_hours = 7.0
     cold_hours = 12.0
+    starter_hours = 4.0
 
     if request.method == 'POST':
         end_time_str = request.form.get('end_time', end_time_str)
         bulk_hours = float(request.form.get('bulk', bulk_hours))
         cold_hours = float(request.form.get('cold', cold_hours))
+        starter_hours = float(request.form.get('starter', starter_hours))
         include_autolyse = request.form.get('autolyse') == 'on'
+        include_feed_starter = request.form.get('feed_starter') == 'on'
 
         end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
 
         steps = [
             {
                 "title": "Rest before slicing",
-                "desc": " Remove from the oven if not already done so, Some say this step is the most difficult part... allowing the loaf to cool completely before slicing. This helps the crumb set properly and the bread to finish cooking inside as it cools. It is best to leave it for at least an hour to cool properly before slicing, but if you can wait longer than that it will be even better.",
+                "desc": "Remove from the oven if not already done so, Some say this step is the most difficult part... allowing the loaf to cool completely before slicing. This helps the crumb set properly and the bread to finish cooking inside as it cools. It is best to leave it for at least an hour to cool properly before slicing, but if you can wait longer than that it will be even better.",
                 "mins": 60
             },
             {
@@ -59,7 +63,7 @@ def index():
             },
             {
                 "title": "Bulk fermentation",
-                "desc": "For this step cover the bowl and let the dough rise at room temperature while it ferments, it will take anything from 3-8 hours. It just depends on how warm your kitchen is. If it fermented dough in your kitchen previously you may have a good idea how long this is likely to take and if so you can set the fermentation slider above to help guide the timings better. If not, a good rule of thumb is to look for the dough to have almost doubled in size and to have some bubbles on the surface and around the sides of the bowl. Before leaving it to ferment you can mark the side of the bowl with a piece of tape or a marker to help you see how much it has risen. The guide here should be on the rising of the dough, not the time, as the time can vary greatly depending on the temperature of your kitchen and the strength of your starter.",
+                "desc": "For this step cover the bowl and let the dough rise at room temperature while it ferments, it will take anything from 3-8 hours. It just depends on how warm your kitchen is. If you have fermented dough in your kitchen previously you may have a good idea how long this is likely to take and if so you can set the fermentation slider above to help guide the timings better. If not, a good rule of thumb is to look for the dough to have almost doubled in size and to have some bubbles on the surface and around the sides of the bowl. Before leaving it to ferment you can mark the side of the bowl with a piece of tape or a marker to help you see how much it has risen. The guide here should be on the rising of the dough, not the time, as the time can vary greatly depending on the temperature of your kitchen and the strength of your starter.",
                 "mins": bulk_hours * 60
             },
             {
@@ -83,18 +87,31 @@ def index():
                 "mins": 30
             },
             {
-                "title": "Add starter",
-                "desc": "Mix the starter into the dough until fully incorporated and combined and allow it to rest for 30 minutes before beginning the stretch and folds.",
+                "title": "Add starter and salt",
+                "desc": "Measure out the required amount of starter and salt, then mix them into the dough until fully incorporated and combined, then allow it to rest for 30 minutes before beginning the stretch and fold steps.",
                 "mins": 30
-            }
+            },
         ]
 
-        if include_autolyse:
+        if include_feed_starter:
             steps.append({
+                "title": "Feeding the starter",
+                "desc": "If you are using a starter that is not already active and bubbly, you will need to feed it to get it going. This usually involves taking a portion of your existing starter and mixing it with fresh flour and water, then letting it sit at room temperature until it becomes active and bubbly. The time this takes can vary greatly depending on the strength of your starter and the temperature of your kitchen, but a good rule of thumb is to allow at least 4-6 hours for it to become active after feeding. If you have an established starter or have fed a starter before in your kitchen, you may have a good idea regarding the amount of time it will likely take for the starter to become active and double in size. In that case you can set the slider to help guide the timeline better. Please note that depending on the ratio you use when feeding your starter will also affect the time it takes to become active, for example if you use a 1:2:2 ratio of starter:flour:water it will likely take longer to become active and double in size than if you use a 1:1:1 ratio as there is more food for the yeast and bacteria to consume.",
+                "mins": starter_hours * 60
+            })
+
+        if include_autolyse:
+            autolyse_step = {
                 "title": "Autolyse",
                 "desc": "If you include this step it can help the flour and water start to combine and the gluten start to develop and give you a stronger dough. Mix just the flour and water together to form whats called by many as a shaggy dough, then let it rest for 30 minutes before adding starter in the next step.",
                 "mins": 30
-            })
+            }
+            # Steps are stored latest-to-earliest. If the starter-feeding step
+            # is included, place autolyse between feeding and adding starter.
+            if include_feed_starter:
+                steps.insert(len(steps) - 1, autolyse_step)
+            else:
+                steps.append(autolyse_step)
 
         # ✅ IMPORTANT: define current BEFORE loop
         current = end_time
@@ -113,14 +130,16 @@ def index():
         'index.html',
         timeline=timeline,
         include_autolyse=include_autolyse,
+        include_feed_starter=include_feed_starter,
         end_time=end_time_str,
         bulk_hours=bulk_hours,
-        cold_hours=cold_hours
+        cold_hours=cold_hours,
+        starter_hours=starter_hours
     )
 
 if __name__ == '__main__':
     # keep debug off in local run to avoid development warning and debugger exposure
-    app.run(debug=False, port=5001)
+    app.run(debug=True, port=5001)
 
 # Production: use a WSGI server (gunicorn/uwsgi) instead of Flask dev server
 # Example: gunicorn --bind 0.0.0.0:8000 app:app
