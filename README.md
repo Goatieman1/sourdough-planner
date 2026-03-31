@@ -1,19 +1,17 @@
-# Sourdough Planner
+# Sourdough Planner App
 
-Example project description:
-Sourdough Planner is a simple Flask web app that helps bakers plan a loaf from start to finish. It combines an ingredient calculator with a timeline generator so you can work backwards from your target finish time and organise each stage of the bake.
-
-You can amend this description before uploading to GitHub.
+Project description:
+Sourdough Planner is a simple Flask web app that helps bakers plan a loaf from start to finish. It combines an ingredient calculator with a timeline generator so you can choose a loaf ready time and it will work backwards from your target finish time and organise each stage of the bake for you.
 
 ## Features
 
 - Calculate ingredient amounts for a target loaf size
-- Adjust hydration, starter, and salt values in Advanced Mode
+- Simple mode and advanced mode for the calculate ingredient feature - Adjust hydration, starter, and salt values in Advanced Mode
 - Generate a baking timeline from a target loaf-ready time
-- Customize starter activation, bulk fermentation, and cold fermentation timings
-- Optionally include autolyse in the process
-- Optionally include feeding the starter in the process
-- Track progress through the generated timeline
+- Customize starter activation, bulk fermentation, and cold fermentation timings if you have a good knowledge of how long these take in your own kitchen
+- Optionally include autolyse and feeding the starter steps in the baking timeline
+- Tracks progress through the generated timeline including highlighting current and next steps
+- Provides a minutes left until next step (in the current step) and a minutes until next step starts (in next step)
 
 ## Screenshots
 
@@ -25,18 +23,10 @@ You can amend this description before uploading to GitHub.
 
 ![Sourdough Planner extended timeline view](pictures/appTimeline2.png)
 
-## Tech Stack
-
-- Python
-- Flask
-- Jinja2
-- Bootstrap 5
-- Gunicorn
-
 ## Running Locally
 
 1. Create and activate a virtual environment.
-2. Install dependencies.
+2. Install dependencies using the requirements text file.
 3. Run the Flask app.
 4. Open the app in your browser.
 
