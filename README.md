@@ -56,6 +56,10 @@ docker run -p 8000:8000 sourdough-planner
 
 Then open `http://127.0.0.1:8000`.
 
+## Location of Prebuilt Docker Image on Docker Hub
+
+https://hub.docker.com/repository/docker/goatieman1/sourdough-planner/general
+
 ## Project Structure
 
 ```text
